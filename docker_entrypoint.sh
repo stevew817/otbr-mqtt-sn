@@ -194,4 +194,15 @@ sed -i "s/^GatewayUDP6Broadcast=.*$/GatewayUDP6Broadcast=$MQTTSN_BROADCAST_ADDRE
 echo "Starting MQTT-SN Gateway listening on: " $MQTTSN_BROADCAST_ADDRESS
 nohup 2>&1 /app/MQTT-SNGateway &
 
+sleep 20
+
+ROUTABLE_PREFIX=$(ot-ctl netdata show | grep paos | awk -F'::/64' '{print $1}')
+echo "Trying to find routable prefix: " $ROUTABLE_PREFIX
+ASSUMED_MQTTGW_IP=$(ifconfig | grep $ROUTABLE_PREFIX | awk -F' ' '{print $2}' | awk -F':' '{printf "%04x%04x%04x%04x%04x%04x%04x%04x", "0x" $1, "0x" $2, "0x" $3, "0x" $4, "0x" $5, "0x" $6, "0x" $7, "0x" $8}')
+echo "Trying to predict MQTT-SN gateway IP to register in netdata: " $ASSUMED_MQTTGW_IP
+
+echo "Registering assumed IP"
+ot-ctl service add 39873 cafeface $ASSUMED_MQTTGW_IP
+ot-ctl netdata register
+
 tail -f /var/log/syslog
